@@ -6,20 +6,14 @@ import com.sk89q.worldguard.LocalPlayer;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.regions.RegionContainer;
 import com.sk89q.worldguard.session.SessionManager;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerGameModeChangeEvent;
-import org.bukkit.event.player.PlayerItemConsumeEvent;
-import org.bukkit.event.player.PlayerItemDamageEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerRespawnEvent;
-import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffect;
@@ -184,7 +178,23 @@ public class PlayerListener implements Listener
 			}.runTask(WorldGuardExtraFlagsPlugin.getPlugin());
 		}
 	}
-	
+
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+	public void onFlightToggle(PlayerToggleFlightEvent event) {
+		Player player = event.getPlayer();
+		if (event.isFlying()) {
+			FlyFlagHandler flyFlagHandler = this.sessionManager.get(this.worldGuardPlugin.wrapPlayer(player)).getHandler(FlyFlagHandler.class);
+
+			Boolean currentValue = flyFlagHandler.getCurrentValue();
+			if (currentValue != null && !currentValue) {
+				event.setCancelled(true);
+				Bukkit.getScheduler().runTask(WorldGuardExtraFlagsPlugin.getPlugin(), () -> {
+					player.setAllowFlight(false);
+				});
+			}
+		}
+	}
+
 	private void checkFlyStatus(Player player, Boolean originalValueOverwrite)
 	{
 		FlyFlagHandler flyFlagHandler = this.sessionManager.get(this.worldGuardPlugin.wrapPlayer(player)).getHandler(FlyFlagHandler.class);
